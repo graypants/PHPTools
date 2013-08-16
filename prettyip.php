@@ -6,4 +6,8 @@ public function PrettyIP() { }
 
 }
 
+public function mobileIP() {
+
+}
+
 ?>
