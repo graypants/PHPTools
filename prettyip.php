@@ -12,7 +12,7 @@
 class PrettyIP {
 
 	public static function clientIP() {
-
+		echo '可爱的IP';
 	}
 
 }
