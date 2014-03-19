@@ -1,6 +1,6 @@
 <?php
 
-require 'PHPExcel.php';
+require 'lib/PHPExcel.php';
 
 class SimplePHPExcel {
 
@@ -16,8 +16,8 @@ class SimplePHPExcel {
 	protected $totalColumns;
 
 	/* 支持的导出类型 */
-	const TYPE_CSV = 'CSV';
-	const TYPE_PDF = 'PDF';
+	// const TYPE_CSV = 'CSV';
+	// const TYPE_PDF = 'PDF';
 	const TYPE_HTML = 'HTML';
 	const TYPE_EXCEL5 = 'Excel5';
 	const TYPE_EXCEL7 = 'Excel2007';
@@ -54,7 +54,7 @@ class SimplePHPExcel {
 
 	/**
 	 * 导出到文件
-	 * type 支持Excel2007,Excel5,HTML,PDF,CSV
+	 * type 支持Excel2007,Excel5,HTML
 	 * target 完整保存路径，默认保存到和当前类同级的目录，文件名和类名相同
 	 *
 	 * @param string $type
@@ -69,9 +69,32 @@ class SimplePHPExcel {
 		$writer->save($target);
 	}
 
+	function setDownloadHeader($contentType = null, $fileName) {
+
+		if( is_null($contentType) ) {
+			$contentType = 'application/octet-stream';
+		}
+		header('Content-Type: ' . $contentType);
+
+		//处理中文文件名
+		$ua = $_SERVER['HTTP_USER_AGENT'];
+		$encodedFileName = urlencode($fileName);
+		$encodedFileName = str_replace("+", "%20", $encodedFileName);
+		if (preg_match("/MSIE/", $ua)) {
+			header('Content-Disposition: attachment; filename="' . $encodedFileName . '"');
+		} else if (preg_match("/Firefox/", $ua)) {
+			header('Content-Disposition: attachment; filename*="utf8\'\'' . $fileName . '"');
+		} else {
+			header('Content-Disposition: attachment; filename="' . $fileName . '"');
+		}
+		header('Cache-Control: max-age=0');
+
+		ob_clean();
+	}
+
 	/**
 	 * 导出到浏览器
-	 * type 支持Excel2007,Excel5,HTML,PDF,CSV
+	 * type 支持Excel2007,Excel5,HTML
 	 * filename 输出到浏览器的文件名
 	 *
 	 * @param string $type
@@ -94,21 +117,7 @@ class SimplePHPExcel {
 		}
 		$filename .= '.' . $this->getSuffixByType($type);
 
-		$ua = $_SERVER["HTTP_USER_AGENT"];
-		$encoded_filename = urlencode($filename);
-		$encoded_filename = str_replace("+", "%20", $encoded_filename);
-
-		header('Content-Type: ' . $contentType);
-		if (preg_match("/MSIE/", $ua)) {
-			header('Content-Disposition: attachment; filename="' . $encoded_filename . '"');
-		} else if (preg_match("/Firefox/", $ua)) {
-			header('Content-Disposition: attachment; filename*="utf8\'\'' . $filename . '"');
-		} else {
-			header('Content-Disposition: attachment; filename="' . $filename . '"');
-		}
-		header('Cache-Control: max-age=0');
-
-		ob_clean();
+		$this->setDownloadHeader($contentType, $filename);
 
 		$objWriter = PHPExcel_IOFactory::createWriter($this->excel, $type);
 		$objWriter->save('php://output');
@@ -257,9 +266,9 @@ class SimplePHPExcel {
 	function setColumnWidthManual($widthStr) {
 		$widths = explode(",", $widthStr);
 		foreach ($widths as $width) {
-			$part = explode("=", $width);
-			$col = chr($part[0] + $this->startX + 64);
-			$this->excel->getActiveSheet()->getColumnDimension($col)->setWidth($part[1]);
+			list($colName, $value) = explode("=", $width);
+			$col = chr($colName + $this->startX + 64);
+			$this->excel->getActiveSheet()->getColumnDimension($col)->setWidth($value);
 		}
 	}
 
@@ -286,7 +295,7 @@ class SimplePHPExcel {
 	 * @return string
 	 */
 	function getSuffixByType($type) {
-		$suffix = "";
+		
 		switch ($type) {
 			case self::TYPE_EXCEL7:
 				$suffix = 'xlsx';
@@ -303,10 +312,32 @@ class SimplePHPExcel {
 			case self::TYPE_CSV:
 				$suffix = 'csv';
 				break;
+			default:
+				$suffix = '';
+				break;
 		}
 		return $suffix;
 	}
 
 }
+
+function simple_export_excel($data, $target) {
+	$simple = new SimplePHPExcel();
+	$simple->drawTable($data['title'], $data['body']);
+	$simple->exportToFile($simple::TYPE_EXCEL7, $target);
+}
+
+$data = array(
+	'title' => array('姓名', '性别', '年龄', '职业'),
+	'body'  => array(
+		array('张学友', '男', '18', '歌手'),
+		array('刘亦菲', '女', '18', '演员'),
+		array('何  炅', '男', '18', '主持人'),
+		array('陈奕迅', '男', '18', '歌手'),
+		array('刘  谦', '男', '18', '魔术师'),
+	),
+);
+
+simple_export_excel($data, '测试.xlsx');
 
 ?>
