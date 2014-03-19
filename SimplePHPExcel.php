@@ -15,13 +15,6 @@ class SimplePHPExcel {
 	/* 总列数 */
 	protected $totalColumns;
 
-	/* 支持的导出类型 */
-	// const TYPE_CSV = 'CSV';
-	// const TYPE_PDF = 'PDF';
-	const TYPE_HTML = 'HTML';
-	const TYPE_EXCEL5 = 'Excel5';
-	const TYPE_EXCEL7 = 'Excel2007';
-
 	function SimplePHPExcel() {
 		$this->excel = new PHPExcel();
 	}
@@ -52,21 +45,32 @@ class SimplePHPExcel {
 		}
 	}
 
-	/**
-	 * 导出到文件
-	 * type 支持Excel2007,Excel5,HTML
-	 * target 完整保存路径，默认保存到和当前类同级的目录，文件名和类名相同
-	 *
-	 * @param string $type
-	 * @param string $target
-	 */
-	function exportToFile($type, $target = null) {
-		$suffix = $this->getSuffixByType($type);
-		$writer = PHPExcel_IOFactory::createWriter($this->excel, $type);
-		if(empty($target)) {
-			$target = str_replace('.php', '.' . $suffix, __FILE__);
+	function extensionMapping($extension) {
+		$mapping = array(
+			'xls'  => 'Excel5',
+			'xlsx' => 'Excel2007',
+			'html' => 'HTML',
+		);
+		if( !array_key_exists($extension, $mapping) ) {
+			exit('not support extension.');
 		}
-		$writer->save($target);
+		return $mapping[$extension];
+	}
+
+	/**
+	 *
+	 * 导出到文件
+	 *
+	 * @param string $file
+	 */
+	function exportToFile($file) {
+		$extension = $this->getFileExtension($file);
+		$type = $this->extensionMapping($extension);
+		$writer = PHPExcel_IOFactory::createWriter($this->excel, $type);
+		if( empty($file) ) {
+			exit('you must give file.');
+		}
+		$writer->save($file);
 	}
 
 	function setDownloadHeader($contentType = null, $fileName) {
@@ -94,31 +98,29 @@ class SimplePHPExcel {
 
 	/**
 	 * 导出到浏览器
-	 * type 支持Excel2007,Excel5,HTML
-	 * filename 输出到浏览器的文件名
 	 *
-	 * @param string $type
-	 * @param string $filename
+	 * @param string $fileName
 	 */
-	function exportToBrowser($type, $filename) {
+	function exportToBrowser($fileName) {
 
-		/* Excel2007和CSV默认使用同一种ContentType */
-		$contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-		switch ($type) {
-			case self::TYPE_EXCEL5:
+		$extension = $this->getFileExtension($fileName);
+
+		switch ($extension) {
+			case 'xls':
 				$contentType = 'application/vnd.ms-excel';
 				break;
-			case self::TYPE_HTML:
+			case 'html':
 				$contentType = 'text/html';
 				break;
-			case self::TYPE_PDF:
-				$contentType = 'application/pdf';
+			default: 
+				/* Excel2007和CSV默认使用同一种ContentType */
+				$contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 				break;
 		}
-		$filename .= '.' . $this->getSuffixByType($type);
 
-		$this->setDownloadHeader($contentType, $filename);
+		$this->setDownloadHeader($contentType, $fileName);
 
+		$type = $this->extensionMapping($extension);
 		$objWriter = PHPExcel_IOFactory::createWriter($this->excel, $type);
 		$objWriter->save('php://output');
 	}
@@ -200,21 +202,14 @@ class SimplePHPExcel {
 	}
 
 	/**
+	 * 设置左侧空白列及顶部空白行
 	 *
-	 *
-	 * @param integer $startx
+	 * @param integer $left
+	 * @param integer $top
 	 */
-	function setStartX($startx) {
-		$this->startX = $startx;
-	}
-
-	/**
-	 * Enter description here...
-	 *
-	 * @param integer $starty
-	 */
-	function setStartY($starty) {
-		$this->startY = $starty;
+	function setBlank($left, $top) {
+		$this->startX = $left;
+		$this->startY = $top;
 	}
 
 	/**
@@ -289,42 +284,34 @@ class SimplePHPExcel {
 
 
 	/**
-	 * 获取文件后缀
+	 * 获取文件扩展名
 	 *
-	 * @param string $type
+	 * @param string $file
 	 * @return string
 	 */
-	function getSuffixByType($type) {
+	function getFileExtension($file) {
+		$extension = pathinfo($file, PATHINFO_EXTENSION);
+		$extension = strtolower($extension);
+		$supports  = array(
+			'xls', 
+			'xlsx', 
+			'html',
+		);
 		
-		switch ($type) {
-			case self::TYPE_EXCEL7:
-				$suffix = 'xlsx';
-				break;
-			case self::TYPE_EXCEL5:
-				$suffix = 'xls';
-				break;
-			case self::TYPE_HTML:
-				$suffix = 'html';
-				break;
-			case self::TYPE_PDF:
-				$suffix = 'pdf';
-				break;
-			case self::TYPE_CSV:
-				$suffix = 'csv';
-				break;
-			default:
-				$suffix = '';
-				break;
+		if( !in_array($extension, $supports) ) {
+			exit('not support file extension.');
 		}
-		return $suffix;
+		return $extension;
 	}
 
 }
 
 function simple_export_excel($data, $target) {
 	$simple = new SimplePHPExcel();
+
+	$simple->setBlank(3, 3);
 	$simple->drawTable($data['title'], $data['body']);
-	$simple->exportToFile($simple::TYPE_EXCEL7, $target);
+	$simple->exportToFile($target);
 }
 
 $data = array(
@@ -338,6 +325,6 @@ $data = array(
 	),
 );
 
-simple_export_excel($data, '测试.xlsx');
+simple_export_excel($data, 'UserList.xlsx');
 
 ?>
