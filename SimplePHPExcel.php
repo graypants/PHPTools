@@ -7,13 +7,13 @@ class SimplePHPExcel {
 	public $excel;
 
 	/* 行轴起始位置 */
-	protected $startX = 2;
+	private $startX = 2;
 	/* 列轴起始位置 */
-	protected $startY = 2;
+	private $startY = 2;
 	/* 总行数 */
-	protected $totalRows;
+	private $totalRows;
 	/* 总列数 */
-	protected $totalColumns;
+	private $totalColumns;
 
 	function SimplePHPExcel() {
 		$this->excel = new PHPExcel();
@@ -36,15 +36,22 @@ class SimplePHPExcel {
 	function setProperties(array $properties = array()) {
 		if(!empty($properties)) {
 			$this->excel->getProperties()->setCreator($properties['u'])
-								   ->setLastModifiedBy($properties['m'])
-								   ->setTitle($properties['t'])
-								   ->setSubject($properties['s'])
-								   ->setDescription($properties['d'])
-								   ->setKeywords($properties['k'])
-								   ->setCategory($properties['c']);
+								   		 ->setLastModifiedBy($properties['m'])
+								   		 ->setTitle($properties['t'])
+								   		 ->setSubject($properties['s'])
+								   		 ->setDescription($properties['d'])
+								   		 ->setKeywords($properties['k'])
+								   		 ->setCategory($properties['c']);
 		}
 	}
 
+	/**
+	 *
+	 * 文件扩展名对应的PHPExcel Type
+	 *
+	 * @param string $extension xls, xlsx, html
+	 * @return string
+	 */
 	function extensionMapping($extension) {
 		$mapping = array(
 			'xls'  => 'Excel5',
@@ -59,25 +66,14 @@ class SimplePHPExcel {
 
 	/**
 	 *
-	 * 导出到文件
+	 * 填充浏览器下载header
 	 *
-	 * @param string $file
+	 * @param string $contentType 
+	 * @param string $fileName
+	 * 
 	 */
-	function exportToFile($file) {
-		$extension = $this->getFileExtension($file);
-		$type = $this->extensionMapping($extension);
-		$writer = PHPExcel_IOFactory::createWriter($this->excel, $type);
-		if( empty($file) ) {
-			exit('you must give file.');
-		}
-		$writer->save($file);
-	}
+	function fillDownloadHeader($contentType, $fileName) {
 
-	function setDownloadHeader($contentType = null, $fileName) {
-
-		if( is_null($contentType) ) {
-			$contentType = 'application/octet-stream';
-		}
 		header('Content-Type: ' . $contentType);
 
 		//处理中文文件名
@@ -91,10 +87,24 @@ class SimplePHPExcel {
 		} else {
 			header('Content-Disposition: attachment; filename="' . $fileName . '"');
 		}
+
 		header('Cache-Control: max-age=0');
 
 		ob_clean();
 	}
+
+	/**
+	 *
+	 * 导出到文件
+	 *
+	 * @param string $file
+	 */
+	function exportToFile($file) {
+		$extension = $this->getFileExtension($file);
+		$type = $this->extensionMapping($extension);
+		$writer = PHPExcel_IOFactory::createWriter($this->excel, $type);
+		$writer->save($file);
+	}	
 
 	/**
 	 * 导出到浏览器
@@ -106,23 +116,25 @@ class SimplePHPExcel {
 		$extension = $this->getFileExtension($fileName);
 
 		switch ($extension) {
-			case 'xls':
-				$contentType = 'application/vnd.ms-excel';
-				break;
 			case 'html':
 				$contentType = 'text/html';
 				break;
-			default: 
-				/* Excel2007和CSV默认使用同一种ContentType */
+			case 'xls':
+				$contentType = 'application/vnd.ms-excel';
+				break;
+			case 'xlsx':
 				$contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+				break;
+			default: 
+				$contentType = 'application/octet-stream';
 				break;
 		}
 
-		$this->setDownloadHeader($contentType, $fileName);
+		$this->fillDownloadHeader($contentType, $fileName);
 
 		$type = $this->extensionMapping($extension);
-		$objWriter = PHPExcel_IOFactory::createWriter($this->excel, $type);
-		$objWriter->save('php://output');
+		$writer = PHPExcel_IOFactory::createWriter($this->excel, $type);
+		$writer->save('php://output');
 	}
 
 	/**
@@ -204,8 +216,8 @@ class SimplePHPExcel {
 	/**
 	 * 设置左侧空白列及顶部空白行
 	 *
-	 * @param integer $left
-	 * @param integer $top
+	 * @param integer $left 空几列
+	 * @param integer $top  空几行
 	 */
 	function setBlank($left, $top) {
 		$this->startX = $left;
@@ -292,15 +304,6 @@ class SimplePHPExcel {
 	function getFileExtension($file) {
 		$extension = pathinfo($file, PATHINFO_EXTENSION);
 		$extension = strtolower($extension);
-		$supports  = array(
-			'xls', 
-			'xlsx', 
-			'html',
-		);
-		
-		if( !in_array($extension, $supports) ) {
-			exit('not support file extension.');
-		}
 		return $extension;
 	}
 
