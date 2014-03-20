@@ -20,6 +20,9 @@ class SimplePHPExcel {
 	}
 
 	/**
+	 *
+	 * 设置excel文件属性
+	 * 
 	 * 数组格式
 	 * array(
 	 * 	'u' => 'Creator',
@@ -78,7 +81,7 @@ class SimplePHPExcel {
 
 		//处理中文文件名
 		$ua = $_SERVER['HTTP_USER_AGENT'];
-		$encodedFileName = urlencode($fileName);
+		$encodedFileName = rawurlencode($fileName);
 		$encodedFileName = str_replace("+", "%20", $encodedFileName);
 		if (preg_match("/MSIE/", $ua)) {
 			header('Content-Disposition: attachment; filename="' . $encodedFileName . '"');
