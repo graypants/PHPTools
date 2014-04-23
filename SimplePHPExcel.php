@@ -306,6 +306,32 @@ class SimplePHPExcel {
 		return $extension;
 	}
 
+	function excelToArray($file) {
+		if( !file_exists($file) || !is_file($file) ) {
+			exit('file not exists.');
+		}
+		$extension = $this->getFileExtension($file);
+		$type = $this->extensionMapping($extension);
+		$reader = PHPExcel_IOFactory::createReader($type);
+		$reader->setReadDataOnly(true);
+		
+		$excel = $reader->load($file);
+
+		$sheet = $excel->getSheet(0);
+		$highestRow = $sheet->getHighestRow();
+		$highestCol = $sheet->getHighestColumn();
+		$highestColIndex = PHPExcel_Cell::columnIndexFromString($highestCol);
+
+		$result = array();
+		for($row = 2; $row <= $highestRow; $row++) {
+			for($col = 1; $col < $highestColIndex; $col++) {
+				$result[$row - 2][] = $sheet->getCellByColumnAndRow($col, $row)->getValue();
+			}
+		}
+
+		return $result;
+	}
+
 }
 
 function simple_export_excel($data, $target) {
@@ -328,5 +354,10 @@ $data = array(
 );
 
 simple_export_excel($data, 'UserList.xlsx');
+
+$simple = new SimplePHPExcel();
+$result = $simple->excelToArray('UserList.xlsx');
+
+print_r($result);
 
 ?>
