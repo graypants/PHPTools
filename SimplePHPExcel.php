@@ -152,7 +152,7 @@ class SimplePHPExcel {
 			}elseif($x > 90 && $x <= 126) {
 				$position = "A" . chr($x - 26) . $y;
 			}else {
-				exit;
+				exit('number of columns greater than 52.');
 			}
 			$this->excel->setActiveSheetIndex(0)
 				 ->setCellValue($position, $item);
