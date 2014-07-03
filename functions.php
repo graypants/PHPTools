@@ -113,9 +113,9 @@ function mkdirs($dir) {
 function make_days($from, $to) {
 	$dates = array();
 	$min   = min($from, $to);
-	$days  = abs(strtotime($from) - strtotime($to))/86400 + 1;
-	for ($i = 0; $i < $days; $i++) {
-		$dates[] = date("Y-m-d", strtotime("+$i day", strtotime($min)));
+	$days  = abs(strtotime($from) - strtotime($to))/86400;
+	for ($i = 0; $i <= $days; $i++) {
+		$dates[] = date('Y-m-d', strtotime("+$i day", strtotime($min)));
 	}
 	return $dates;
 }
@@ -159,5 +159,23 @@ function arrayToObject($d) {
 		// Return object
 		return $d;
 	}
+}
+
+
+
+
+/* 图像相关 */
+
+
+
+/**
+ * 向浏览器输出一个1x1的透明gif
+ *
+ */
+function easy_gif() {
+	header('Content-type: image/gif');
+	header('Expires: Fri, 01 Jan 1980 00:00:00 GMT');
+	header('Cache-Control: no-cache, max-age=0, must-revalidate');
+	echo base64_decode('R0lGODdhAQABAIAAAPxqbAAAACwAAAAAAQABAAACAkQBADs=');
 }
 ?>
